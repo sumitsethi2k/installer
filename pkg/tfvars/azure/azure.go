@@ -7,6 +7,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/pkg/errors"
 
+        "github.com/openshift/installer/pkg/tfvars/internal/cache"
 	azureprovider "sigs.k8s.io/cluster-api-provider-azure/pkg/apis/azureprovider/v1beta1"
 
 	"github.com/openshift/installer/pkg/types"
@@ -81,6 +82,11 @@ func TFVars(sources TFVarsSources) ([]byte, error) {
 		return nil, errors.Wrap(err, "could not determine Azure environment to use for Terraform")
 	}
 
+        cachedImage, err := cache.DownloadImageFile(sources.ImageURL)
+        if err != nil {
+                return nil, errors.Wrap(err, "failed to use cached Azure image")
+        }
+
 	cfg := &config{
 		Auth:                        sources.Auth,
 		Environment:                 environment,
@@ -90,7 +96,7 @@ func TFVars(sources TFVarsSources) ([]byte, error) {
 		MasterAvailabilityZones:     masterAvailabilityZones,
 		VolumeType:                  masterConfig.OSDisk.ManagedDisk.StorageAccountType,
 		VolumeSize:                  masterConfig.OSDisk.DiskSizeGB,
-		ImageURL:                    sources.ImageURL,
+		ImageURL:                    cachedImage,
 		Private:                     sources.Publish == types.InternalPublishingStrategy,
 		OutboundUDR:                 sources.OutboundType == azure.UserDefinedRoutingOutboundType,
 		ResourceGroupName:           sources.ResourceGroupName,
